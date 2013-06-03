@@ -15,6 +15,7 @@ class Morse
     Morse(int pin);
     void dot();
     void dash();
+    void space();
   private:
     int _pin;
 };

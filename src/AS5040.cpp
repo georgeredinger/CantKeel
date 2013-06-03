@@ -20,7 +20,6 @@ int ledPin = 13;
 
 
 AS5040::AS5040() {
-  Serial.println("AS5040 constructor");
 }
 
 void AS5040::initialize() {
@@ -31,14 +30,14 @@ void AS5040::initialize() {
 }
 
 int AS5040::read(){
-    // CSn needs to cycle from high to low to initiate transfer. Then clock cycles. As it goes high
+  // CSn needs to cycle from high to low to initiate transfer. Then clock cycles. As it goes high
   // again, data will appear on sda
   digitalWrite(CSnPin, HIGH); // CSn high
   digitalWrite(clockPin, HIGH); // CLK high
-  delay(1000);// wait for 1 second for no particular reason
+  delay(100);// wait for 1 second for no particular reason
   digitalWrite(ledPin, HIGH); // signal start of transfer with LED
   digitalWrite(CSnPin, LOW); // CSn low: start of transfer
-  delay(100); // delay for chip -- 1000x as long as it needs to be
+  delay(10); // delay for chip -- 1000x as long as it needs to be
   digitalWrite(clockPin, LOW); // CLK goes low: start clocking
   delay(10); // hold low for 10 ms
   for (int x=0; x <16; x++) // clock signal, 16 transitions, output to clock pin
@@ -46,36 +45,37 @@ int AS5040::read(){
     digitalWrite(clockPin, HIGH); //clock goes high
     delay(10); // wait 10ms
     inputstream =digitalRead(inputPin); // read one bit of data from pin
-    Serial.print(inputstream, DEC);
+//    Serial.print(inputstream, DEC);
     packeddata = ((packeddata << 1) + inputstream);// left-shift summing variable, add pin value
     digitalWrite(clockPin, LOW);
     delay(10); // end of one clock cycle
   }
   // end of entire clock cycle
-  Serial.println(" ");
+ // Serial.println(" ");
   digitalWrite(ledPin, LOW); // signal end of transmission
   // lots of diagnostics for verifying bitwise operations
-  Serial.print("packed:");
-  Serial.println(packeddata,DEC);
-  Serial.print("pack bin: ");
-   Serial.println(packeddata,BIN);
+//  Serial.print("packed:");
+//  Serial.println(packeddata,DEC);
+//  Serial.print("pack bin: ");
+ //  Serial.println(packeddata,BIN);
   angle = packeddata & anglemask; // mask rightmost 6 digits of packeddata to zero, into angle.
-  Serial.print("mask: ");
-  Serial.println(anglemask, BIN);
-  Serial.print("bin angle:");
-  Serial.println(angle, BIN);
-  Serial.print("angle: ");
-  Serial.println(angle, DEC);
+ // Serial.print("mask: ");
+ // Serial.println(anglemask, BIN);
+//  Serial.print("bin angle:");
+//  Serial.println(angle, BIN);
+//  Serial.print("angle: ");
+//  Serial.println(angle, DEC);
   angle = (angle >> 6); // shift 16-digit angle right 6 digits to form 10-digit value//
-  Serial.print("angleshft:");
-  Serial.println(angle, BIN);
-  Serial.print("angledec: ");
-  Serial.println(angle, DEC);
-  angle = angle * 0.3515; // angle * (360/1024) == actual degrees
-  Serial.print("angle: "); // and, finally, print it.
-  Serial.println(angle, DEC);
-  Serial.println("--------------------");
-  Serial.print("raw: "); // this was the prefix for the bit-by-bit diag output inside the loop.
+//  Serial.print("angleshft:");
+//  Serial.println(angle, BIN);
+//  Serial.print("angledec: ");
+//  Serial.println(angle, DEC);
+ // angle = angle * 0.3515; // angle * (360/1024) == actual degrees
+  angle = (angle * 360L) / 1024L; // angle * (360/1024) == actual degrees
+//  Serial.print("angle: "); // and, finally, print it.
+//  Serial.println(angle, DEC);
+//  Serial.println("--------------------");
+//  Serial.print("raw: "); // this was the prefix for the bit-by-bit diag output inside the loop.
   if (debug)
   {
     statusbits = packeddata & statusmask;
@@ -85,27 +85,30 @@ int AS5040::read(){
     COF = statusbits & 16; // goes high for cordic overflow: data invalid
     OCF = statusbits & 32; // this is 1 when the chip startup is finished.
     if (DECn && INCn) { 
-      Serial.println("magnet moved out of range");
+				angle = -5;
+      //Serial.println("magnet moved out of range");
     }
     else
     {
       if (DECn) { 
-        Serial.println("magnet moved away from chip"); 
+				angle = -1;
+ //       Serial.println("magnet moved away from chip"); 
       }
       if (INCn) { 
-        Serial.println("magnet moved towards chip"); 
+				angle = -2;
+  //      Serial.println("magnet moved towards chip"); 
       }
     }
     if (LIN) { 
-      Serial.println("linearity alarm: magnet misaligned? Data questionable."); 
+				angle = -3;
+   //   Serial.println("linearity alarm: magnet misaligned? Data questionable."); 
     }
     if (COF) { 
-      Serial.println("cordic overflow: magnet misaligned? Data invalid."); 
+				angle = -4;
+    //  Serial.println("cordic overflow: magnet misaligned? Data invalid."); 
     }
   }
 
- return angle;
-  packeddata = 0; // reset both variables to zero so they don't just accumulate
-  angle = 0;
+ return (int)angle;
  
 }

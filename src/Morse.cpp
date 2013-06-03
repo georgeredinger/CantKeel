@@ -29,3 +29,7 @@ void Morse::dash()
   delay(250);
 }
 
+void Morse::space()
+{
+  delay(1500);
+}
