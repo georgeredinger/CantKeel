@@ -14,17 +14,21 @@ const int NbrLEDs = 4;
 //   NEO_KHZ800  800 KHz bitstream (e.g. High Density LED strip)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(4, 12, NEO_GRB + NEO_KHZ800);
 
-int readkeel() {
-  static int angle=0;
-	angle = (angle+1) % 360;
-	if(angle>315){
-    return angle; 
+int full_circle_to_port_starboard(int angle){
+	if(angle < 0){
+		//Serial.println("sensor error");
+		return -99;
 	}
-	if(angle < 45){
-		return angle;
+	if(angle < 46 ){
+		return(angle);
 	}
-  return -angle;
+	if(angle > 314){
+		return(-(360-angle));
+	}
+	//Serial.println("Out of range");
+  return(-100);
 }
+
 void setup()
 {
 	Serial.begin(9600);
@@ -33,30 +37,31 @@ void setup()
 	strip.begin();
 	strip.show(); // Initialize all pixels to 'off'
 }
+
 void loop()
 {
-	bool port=false;
 	int red,green,blue;
 	int ledLevel;
 	int angle;
-delay(100);
+	bool centered=false;
+  delay(100);
   angle	= encoder.read();
- // angle = readkeel();
+	angle = full_circle_to_port_starboard(angle);
 	Serial.println(angle);
-	if(angle > 0){
-		if(angle > 315 ) { //port?
-			angle = angle - 315;
-			port=true;
-			red=0;green=1;blue=0;
+	if(angle > -46){
+		if(angle < 0  ) { //port
+			angle = -angle;
+			red=1;green=0;blue=0;
+			centered = (angle < 2);
 			ledLevel = map(angle, 0,45 , 0, NbrLEDs); // map to number of LEDs
-		} else { 
-			port=false; 
+		} else { //starboard
+			green=1;red=0;blue=0;
+			centered = (angle < 2 );
 			ledLevel = map(angle, 0,45 , 0, NbrLEDs); // map to number of LEDs for (int led = 0; led < NbrLEDs; led++) {
-			green=0;red=1;blue=0;
 		}
 		}else{
 			if(errorBlink){
-				strip.setPixelColor(0, 0x0000ff) ;
+				strip.setPixelColor(0, 0x0000ff);
 				strip.setPixelColor(1, 0x0000ff);
 				strip.setPixelColor(2, 0x0000ff);
 				strip.setPixelColor(3, 0x0000ff);
@@ -71,6 +76,14 @@ delay(100);
 			ledLevel=0;
 		}
 
+		if(centered){
+	      Serial.println("centered");
+				strip.setPixelColor(0, 0xff0000);
+				strip.setPixelColor(1, 0xff0000);
+				strip.setPixelColor(2, 0x00ff00);
+				strip.setPixelColor(3, 0x00ff00);
+			  strip.show();
+		}else{	
 		for (int led = 0; led < NbrLEDs; led++) {
 			if (led < ledLevel ) {
 				strip.setPixelColor(led, red*0xff,green*0xff,blue*0xff);
@@ -83,5 +96,6 @@ delay(100);
 			strip.setPixelColor(ledLevel, abs(angle-ledLevel*11)*23*red,abs(angle-ledLevel*11)*23*green,blue*0xff);
 			strip.show();
 		}
+	}
 	}
 
